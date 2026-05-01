@@ -1,9 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, Mic2 } from 'lucide-react';
+import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, Mic2, Linkedin, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuthStore } from '../store/authStore';
+
+import Logo from '../assets/Xo.png';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -17,13 +19,15 @@ export default function Sidebar() {
     { to: '/tasks', icon: <CheckSquare size={20} />, label: 'Daily Tasks' },
     { to: '/voice-practice', icon: <Mic2 size={20} />, label: 'Voice Practice' },
     { to: '/dashboard', icon: <BarChart2 size={20} />, label: 'Dashboard' },
+    { to: '/linkedin-post', icon: <Linkedin size={20} />, label: 'LinkedIn Post' },
+    { to: '/community', icon: <Users size={20} />, label: 'Community' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 
   return (
     <div className="w-64 bg-bg-primary/85 backdrop-blur-lg border-r border-green-core/10 h-screen flex flex-col">
       <div className="p-4 flex items-center gap-3 border-b border-green-core/10 text-text-primary">
-        <Brain className="text-green-core" size={28} />
+        <img src={Logo} alt="Jerry AI Logo" className="w-8 h-8 rounded-lg object-cover" />
         <h1 className="text-xl font-display font-bold tracking-tight">Jerry AI</h1>
       </div>
       

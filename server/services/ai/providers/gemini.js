@@ -22,11 +22,19 @@ const KEYS = [
   process.env.GEMINI_KEY3,
   process.env.ENGLISH_GEMINI_KEY1,
   process.env.ENGLISH_GEMINI_KEY2,
+  process.env.LINKEDIN_GEMINI_KEY1,
+  process.env.LINKEDIN_GEMINI_KEY2,
+  process.env.LINKEDIN_GEMINI_KEY3,
 ].filter(Boolean);
 
 // Model list is controlled entirely via .env → GEMINI_MODELS (comma-separated, priority order)
 // e.g.  GEMINI_MODELS=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
 const MODELS = (process.env.GEMINI_MODELS || 'gemini-2.0-flash')
+  .split(',')
+  .map(m => m.trim())
+  .filter(Boolean);
+
+const IMAGE_MODELS = (process.env.IMAGE_GEMINI_MODEL || 'gemini-3.1-flash-image-preview')
   .split(',')
   .map(m => m.trim())
   .filter(Boolean);
@@ -46,7 +54,8 @@ const keyRegistry = KEYS.map(key => ({
   lastUsed: 0,
   errorRate: 0, // Exponential moving average of errors
   successCount: 0,
-  totalRequests: 0
+  totalRequests: 0,
+  modelStats: {} // Tracks failures per model for Smart Switch
 }));
 
 // ─── Priority Queues ────────────────────────────────────────────────────────
@@ -127,10 +136,14 @@ async function execGeminiRequest(prompt, k, model) {
     if (res.status === 429) {
       k.failureCount++;
       k.cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN;
-      k.errorRate = (k.errorRate * 0.7) + 0.3; // Weight local spike
+      k.errorRate = (k.errorRate * 0.7) + 0.3; 
+      // Smart Switch: Flag this specific model as failing for this key
+      k.modelStats[model] = (k.modelStats[model] || 0) + 1;
+      
       metrics.emit('request', { key: k.key.slice(-6), model, latency, success: false, status: 429 });
-      const err = new Error('Rate limited');
+      const err = new Error(`Model ${model} limit reached for this pathway.`);
       err.status = 429;
+      err.model = model;
       throw err;
     }
 
@@ -195,16 +208,20 @@ async function callWithOrchestration(prompt, priority = 'normal', retries = 5, c
 
       try {
         const result = await execGeminiRequest(prompt, k, model);
-        // Save to cache on success
+        // Smart Switch: Clear failure on success
+        if (k.modelStats[model]) k.modelStats[model] = 0;
+        
         semanticCache.set(hash, { text: result, timestamp: Date.now() });
         return result;
       } catch (err) {
-        // Retry on 429, 5xx, AND 404/400 (if a model name from .env is invalid or not yet available)
+        // Smart Switch: On 429, we don't just wait—we pivot models next attempt
         const isRetryable = err.status === 429 || (err.status >= 500 && err.status < 600) || err.status === 404 || err.status === 400 || !err.status;
+        
         if (isRetryable && attempt < retries - 1) {
-          const backoff = (attempt + 1) * 1000;
-          await sleep(backoff);
-          continue; 
+           console.log(`[SmartSwitch] Model ${model} failed. Pivoting to next in pool...`);
+           const backoff = err.status === 429 ? 500 : (attempt + 1) * 1000; // Faster pivot on 429
+           await sleep(backoff);
+           continue; 
         }
         throw err;
       }
@@ -219,4 +236,14 @@ async function callWithOrchestration(prompt, priority = 'normal', retries = 5, c
 const chatAI = (prompt) => callWithOrchestration(prompt, 'high');
 const analysisAI = (prompt) => callWithOrchestration(prompt, 'normal');
 
-module.exports = { chatAI, analysisAI, callWithOrchestration, metrics };
+const imageAI = (prompt) => {
+  // Uses the dedicated IMAGE_GEMINI_MODEL defined in .env for visual generation
+  return callWithOrchestration(prompt, 'high', 10, IMAGE_MODELS);
+};
+
+const linkedinAI = (prompt) => {
+  // Standard LinkedIn content (text) generation
+  return callWithOrchestration(prompt, 'high');
+};
+
+module.exports = { chatAI, analysisAI, imageAI, linkedinAI, callWithOrchestration, metrics };

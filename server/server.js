@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const chatRoutes = require('./routes/chatRoutes');
 const taskRoutes = require('./routes/taskRoutes');
@@ -12,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
 const englishRoutes = require('./routes/englishRoutes');
 const voiceRoutes   = require('./routes/voiceRoutes');
+const linkedInRoutes = require('./routes/linkedInRoutes');
 
 const rateLimit = require('express-rate-limit');
 
@@ -21,6 +23,8 @@ const app = express();
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
+app.use('/assets', express.static('assets'));
+app.use('/assets/generated_posts', express.static(path.join(__dirname, 'assets', 'generated_posts')));
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -63,11 +67,18 @@ const geminiLimiter = rateLimit({
 app.use('/api/gemini', geminiLimiter, geminiRoutes);   // Gemini proxy — keys are server-side only
 app.use('/api/english', englishRoutes);
 app.use('/api/voice',   voiceRoutes);
+app.use('/api/linkedin', linkedInRoutes);
 
 // Initialize Cron Jobs
-initCronJobs();
+if (process.env.NODE_ENV !== 'production') {
+    initCronJobs();
+}
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;

@@ -8,6 +8,8 @@ import Settings from './pages/Settings';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VoicePracticePage from './pages/VoicePracticePage';
+import LinkedInPostGenerator from './pages/LinkedInPostGenerator';
+import CommunityPosts from './pages/CommunityPosts';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/authStore';
 import AnimatedLogoutButton from './components/AnimatedLogoutButton';
@@ -56,6 +58,8 @@ export default function App() {
                     <Route path="/voice-practice" element={<VoicePracticePage />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/linkedin-post" element={<LinkedInPostGenerator />} />
+                    <Route path="/community" element={<CommunityPosts />} />
                     {/* Fallback for protected routes */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

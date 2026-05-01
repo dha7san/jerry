@@ -1,4 +1,5 @@
 import React from 'react';
+import Logo from '../assets/Xo.png';
 
 export default function AuthLayout({ children, title, subtitle }) {
   return (
@@ -9,8 +10,8 @@ export default function AuthLayout({ children, title, subtitle }) {
 
       <div className="w-full max-w-md bg-bg-glass backdrop-blur-md rounded-lg border border-green-core/20 shadow-card p-8 relative z-10">
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-green-core/20 rounded-pill flex items-center justify-center mx-auto mb-6 border border-green-core/30 shadow-glow animate-pulse">
-             <div className="w-10 h-10 rounded-full bg-green-core shadow-[0_0_20px_rgba(76,221,30,0.6)]" />
+          <div className="w-20 h-20 bg-green-core/20 rounded-pill flex items-center justify-center mx-auto mb-6 border border-green-core/30 shadow-glow animate-pulse overflow-hidden">
+             <img src={Logo} alt="Jerry AI Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-display font-bold text-black-spore mb-2 tracking-tight">{title}</h1>
           <p className="text-text-muted text-sm font-medium">{subtitle}</p>
